@@ -1,0 +1,27 @@
+#homework is to create 2 separate matrices: 1 for survived sparrows and 1 for non-survived sparrows. Then, we can calculate col_means, create covariance matrices and correlation matrices.
+
+View(Bumpus_sparrows)
+df<-Bumpus_sparrows
+
+split_df <- split(df, df$Survivorship)
+
+survived_df <- split_df$S
+not_survived_df <- split_df$NS
+
+
+View(survived_df)
+View(not_survived_df)
+
+survived_df<-survived_df[,-1]
+not_survived_df<-not_survived_df[,-1]
+
+#For Survived Sparrows
+colMeans(survived_df)
+cov(survived_df)
+cor(survived_df)
+
+#For Not Survived Sparrows
+colMeans(not_survived_df)
+cov(not_survived_df)
+cor(not_survived_df)
+

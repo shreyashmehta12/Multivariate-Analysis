@@ -1,0 +1,305 @@
+---
+title: "Vector_And_Matrix"
+author: "pronak@business.rutgers.edu"
+date: "1/28/2023"
+output: html_document
+---
+
+## R Markdown
+
+```{r}
+#Define a Vector
+v <- c(3,2,2)
+v
+
+is.vector(v)
+is.matrix(v)
+#dim(v)
+class(v)
+#ncol(v)
+#nrow(v)
+
+#Transpose Vector -> Matrix
+vp <- t(v)
+vp
+is.vector(vp)
+is.matrix(vp)
+class(vp)
+
+# Add vectors
+
+w <- c(4,1,2)
+av <- v + w
+av
+is.vector(av)
+is.matrix(av)
+class(av)
+# Subtract vectors
+
+sv1 <- v-w
+sv2 <- w-v
+sv1
+sv2
+is.vector(sv1)
+is.matrix(sv1)
+class(sv1)
+#Scalar Multiplication
+
+sm1 <- 3*v
+sm2 <- v*3
+sm1
+sm2
+is.vector(sm1)
+is.matrix(sm1)
+class(sm1)
+#Vector Dot Product
+d1 <- v %*% w
+d2 <- w %*% v
+d3 <- v %*% v
+d4 <- w %*% w
+d1
+d2
+d3
+d4
+is.vector(d1)
+is.matrix(d1)
+class(d1)
+
+# Matrix
+
+A <- matrix(c(2,3,-2,1,2,2),3,2)
+A
+is.vector(A)
+is.matrix(A)
+class(A)
+attributes(A)
+dim(A)
+ncol(A)
+nrow(A)
+
+#Scalar Multiplication
+c <- 3
+A*3
+3*A
+A/3
+B <- matrix(c(1,4,-2,1,2,1),3,2)
+B
+is.vector(B)
+is.matrix(B)
+class(B)
+attributes(B)
+dim(B)
+ncol(B)
+nrow(B)
+
+A*B #Element Wise Multiplication
+
+crossprod(A, B) # Vector Multiplication
+
+# Add and Subtract
+
+C <- A + B
+C
+C <- A - B
+C
+
+#Matrix Multiplication
+
+D <- matrix(c(2,-2,1,2,3,1),2,3)
+D
+dim(D)
+C1 <- A %*% D
+C2 <- D %*% A
+
+C1
+C2
+dim(C1)
+dim(C2)
+
+# Transpose 
+A
+AT <- t(A)
+AT
+dim(AT)
+ATT <- t(AT)
+ATT
+dim(ATT)
+
+# Common Vectors
+
+U <- matrix(1,3,1) #Unit
+U
+Z <- matrix(0,3,1) # Zero
+Z
+U <- matrix(1,3,2)
+U
+Z <- matrix(0,3,2)
+Z
+S <- matrix(c(2,3,-2,1,2,2,4,2,3),3,3)
+S
+diag(S)
+diag(diag(S))
+I <- diag(c(1,1,1)) # Identity
+I
+
+# Symmetric Matrix
+C <- matrix(c(2,1,5,1,3,4,5,4,-2),3,3)
+C
+CT <- t(C)
+CT
+
+# Inverse Matrix
+A <- matrix(c(4,4,-2,2,6,2,2,8,4),3,3)
+A
+AI <- solve(A)
+AI
+
+# What is A*AI
+A %*% AI
+AI %*% A
+
+#Inverse and Determinant of a Matrix
+
+C <- matrix(c(2,1,6,1,3,4,6,4,-2),3,3)
+C
+CI <- solve(C)
+CI
+det(C)
+
+# Rank of Matrix
+A <- matrix(c(2,3,-2,1,2,2,4,7,0),3,3)
+A
+matA <- qr(A)
+attributes(matA)
+matA$rank
+A <- matrix(c(2,3,-2,1,2,2,4,6,-4),3,3)
+A
+det(A)
+matA <- qr(A)
+matA$rank
+
+# Column & Row Sums
+
+A <- matrix(c(2,3,-2,1,2,2),3,2)
+A
+c <- colSums(A)
+r <- rowSums(A)
+a <- sum(A)
+
+c
+r
+a
+
+# Means
+
+cm <- colMeans(A)
+rm <- colMeans(A)
+m <- mean(A)
+
+# Combining or Concatenation
+
+A
+B <- matrix(c(1,3,2,1,4,2),3,2)
+B
+C <- cbind(A,B) #Horizontal
+D <- rbind(A,B) # Vertical
+C
+D
+
+# Sample R Lab
+
+Foo <- 12 # Assignment
+Foo
+# Creating a numeric vector using concatenation operator c()
+precip <- c(43, 20, 28, 28, 28, 15, 21, 10, 10, 19, 22, 58, 34, 21, 42, 50)
+#Percip is called a Vector. 
+#How many elements does this vector have?
+length(precip)
+# Assign Names to these objects within the vector
+COLONY <- c("SS", "SB", "WSB", "JRC", "JRH", "SJ", "CR", "UO", "LO", "DP", "PZ", "MC", "IF", "AF", "GH", "GL")
+#Trick is to make sure both vectors are of same length
+names(precip) <- COLONY
+plot(precip)
+text(precip,label=names(precip))
+# Indexing
+precip[13]
+library(readr)
+#Sparrow Example
+#Bumpus_sparrows <- read_csv("/Users/ronakpar/Desktop/Rutgers/MVA/R Exercise/K25945 - R code and data sets/Chapter 1/Bumpus_sparrows.csv")
+Bumpus_sparrows
+sparr <- Bumpus_sparrows
+sparr
+sparr[,-1]
+#We will drop column 1 as it does not contain a number
+sparr.num <- sparr[,-1]
+# Computing the means of each variable in data frame sparr.num
+colMeans(sparr.num)
+# Covariance matrix
+cov(sparr.num)
+# Correlation matrix
+cor(sparr.num)
+
+#install.packages("MVA")
+library(MVA)
+#install.packages("HSAUR2")
+library(HSAUR2)
+
+# Check out the datasets available in these packages
+data(package='HSAUR2')
+
+measure <-
+structure(list(V1 = 1:20, V2 = c(34L, 37L, 38L, 36L, 38L, 43L,
+40L, 38L, 40L, 41L, 36L, 36L, 34L, 33L, 36L, 37L, 34L, 36L, 38L,
+35L), V3 = c(30L, 32L, 30L, 33L, 29L, 32L, 33L, 30L, 30L, 32L,
+24L, 25L, 24L, 22L, 26L, 26L, 25L, 26L, 28L, 23L), V4 = c(32L,
+37L, 36L, 39L, 33L, 38L, 42L, 40L, 37L, 39L, 35L, 37L, 37L, 34L,
+38L, 37L, 38L, 37L, 40L, 35L)), .Names = c("V1", "V2", "V3",
+"V4"), class = "data.frame", row.names = c(NA, -20L))
+measure
+measure <- measure[,-1]
+measure
+names(measure) <- c("chest", "waist", "hips")
+measure$gender <- gl(2, 10)
+levels(measure$gender) <- c("male", "female")
+measure
+var(measure)
+# Since it forces NA, lets take the last column out
+
+cov(measure[, c("chest", "waist", "hips")])
+#Take a subset by gender 
+cov(subset(measure, gender == "female")[,c("chest", "waist", "hips")])
+cov(subset(measure, gender == "male")[,c("chest", "waist", "hips")])
+
+# Take the correlation
+cor(measure[, c("chest", "waist", "hips")])
+# Lets understand Distance. use Scale function when units are different
+distance = dist(scale(measure[, c("chest", "waist", "hips")],center = FALSE))
+
+distance
+is.vector(distance)
+is.matrix(distance)
+class(distance)
+attributes(distance)
+distance_matrix <- as.matrix(distance)
+distance_matrix
+is.vector(distance_matrix)
+is.matrix(distance_matrix)
+class(distance_matrix)
+
+x <- measure[, c("chest", "waist", "hips")]
+cm <- colMeans(x)
+S <- cov(x)
+d <- apply(x, MARGIN = 1, function(x)t(x - cm) %*% solve(S) %*% (x - cm))
+cm
+S
+d
+qqnorm(measure[,"chest"], main = "chest"); qqline(measure[,"chest"])
+qqnorm(measure[,"waist"], main = "waist"); qqline(measure[,"waist"])
+qqnorm(measure[,"hips"], main = "hips"); qqline(measure[,"hips"])
+plot(qc <- qchisq((1:nrow(x) - 1/2) / nrow(x), df = 3), sd <- sort(d),xlab = expression(paste(chi[3]^2, " Quantile")),ylab = "Ordered distances")
+oups <- which(rank(abs(qc - sd), ties = "random") > nrow(x) - 3)
+text(qc[oups], sd[oups] - 1.5,oups)
+abline(a = 0, b = 1)
+
+```
+
