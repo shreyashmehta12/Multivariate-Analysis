@@ -1,0 +1,71 @@
+---
+title: "Assignment 2"
+author: "Shreyash Mehta"
+date: "2/12/2023"
+output:
+  html_document: default
+word_document: default
+pdf_document: default
+---
+  
+```{r}
+
+# load packages
+library(lattice)
+library(ggplot2)
+library(ggridges)
+library(ggvis)
+library(ggthemes)
+library(cowplot)
+library(gapminder)
+library(gganimate)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(RColorBrewer)
+library(scatterplot3d)
+library(GGally)
+sparrows <- read_csv("D:/Rutgers MITA/Spring 2023/MVA/Assignment 2/Bumpus_sparrows.csv")
+View(sparrows)
+
+#Statistical Analysis
+str(sparrows)
+stars(sparrows,labels = sparrows$Survivorship)
+pairs(sparrows[,2:6])
+cor(sparrows[,2:6])
+
+
+
+#Scatterplot matrix for the sparrows dataset
+ggpairs(sparrows[,c("Total_length", "Alar_extent", "L_beak_head","L_humerous","L_keel_sternum", "Survivorship")],aes(color = factor(Survivorship)))
+
+        
+# Analysis Total length by Survivorship
+ggplot(sparrows , aes(x=Survivorship,fill="Total_length")) + geom_bar() + theme_bw() + labs(y= "count", title = "Bump Sparrows")
+ggplot(sparrows, aes(x = Survivorship, y = Total_length)) +geom_boxplot()
+
+
+# Analysis Alar_extent by Survivorship
+ggplot(sparrows, aes(x = Alar_extent, fill = factor(Survivorship))) +geom_histogram(bins=20)
+ggplot(sparrows, aes(x = Survivorship, y = Alar_extent)) +geom_boxplot()
+
+#Scatterplot
+ggplot(sparrows, aes(x=Total_length,y=Alar_extent)) + facet_wrap(~Survivorship) + geom_point()
+
+#Density plot
+ggplot(sparrows, aes(x=L_humerous, y=Survivorship)) + geom_density_ridges()
+
+#Violin plot
+ggplot(sparrows, aes(x=L_humerous, y=L_keel_sternum)) + geom_violin()
+
+#hexbin plot
+ggplot(sparrows, aes(x=L_beak_head, y=L_keel_sternum)) + geom_hex() 
+
+
+
+#Inferences from the above visualizations
+
+#From scatterplot matrix we can see L_humerous and L_beak_head has highest positive correlation suggesting that birds with longer humerus bones tend to have long beak head. 
+#Found that sparrows that died were shorter than sparrows that survived, which suggests that higher sparrow body length increased survival.  
+#Found that sparrows that died have higher Alar_extent value as compared to the ones which survived.
