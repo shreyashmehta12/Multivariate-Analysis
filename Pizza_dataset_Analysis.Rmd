@@ -1,0 +1,494 @@
+---
+title: "PCA, Clusters, FA on Pizza dataset"
+author: "Shreyash Mehta"
+date: "03/12/2023"
+output:
+html_document: default
+word_document: default
+pdf_document: default
+---
+  
+```{r}
+
+library(readxl)
+pizza <- read_excel("D:/Rutgers MITA/Spring 2023/MVA/Pizza_dataset.xlsx")
+View(pizza)
+
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(grid)
+library(cowplot) 
+library(factoextra)
+library(corrplot)
+library(devtools)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+
+#The dataset contains a set of 300 records under 7 attributes.
+
+str(pizza)
+attach(pizza)
+summary(pizza)
+cor(pizza[-1])
+
+plot(pizza[,-1])
+
+library(GGally)
+ggpairs(pizza[,c("mois","fat","ash","sodium","carb","cal")],aes(color = factor(brand)))
+
+p1 <- ggplot(pizza, aes(x=mois, y=fat, color=brand)) + geom_point()
+p2 <- ggplot(pizza, aes(x=prot, y=fat, color=brand)) + geom_point()
+p3 <- ggplot(pizza, aes(x=mois, y=ash, color=brand)) + geom_point()
+p4 <- ggplot(pizza, aes(x=mois, y=sodium, color=brand)) + geom_point()
+p5 <- ggplot(pizza, aes(x=carb, y=fat, color=brand)) + geom_point()
+
+plot_grid(p1, p2, p3, p4,p5, labels = "AUTO")
+
+
+
+##########################Principal Component Analysis##################################
+
+pizza_pca <- prcomp(pizza[,-1],scale=TRUE)
+pizza_pca
+summary(pizza_pca)
+plot(pizza_pca)
+pizza_pca
+
+(eigen_pizza <- pizza_pca$sdev^2)
+names(eigen_pizza) <- paste("PC",1:7,sep="")
+eigen_pizza
+
+
+sumlabdas<-sum(eigen_pizza)
+sumlabdas
+
+propvar<-eigen_pizza/sumlabdas
+propvar
+
+cumvar<-cumsum(propvar)
+cumvar
+
+
+matlambdas <- rbind(eigen_pizza,propvar,cumvar)
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+round(matlambdas,4)
+
+summary(pizza_pca)
+
+pizza_pca$rotation
+
+pizza_pca$x
+
+
+var <- get_pca_var(pizza_pca)
+var
+
+plot(eigen_pizza, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+
+# Correlation
+pairs.panels(pizza[,-5],
+             gap = 0,
+             bg = c("red", "blue")[pizza$brand],
+             pch=21)
+
+diag(cov(pizza_pca$x))
+xlim <- range(pizza_pca$x[,1])
+plot(pizza_pca$x,xlim=xlim,ylim=xlim)
+
+library(vctrs)
+library(purrr)
+
+#Correlation circle
+head(var$coord, 4)
+fviz_eig(pizza_pca, addlabels = TRUE)
+
+fviz_pca_var(pizza_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+
+biplot(pizza_pca)
+
+#Quality of representation
+head(var$cos2, 4)
+corrplot(var$cos2, is.corr=FALSE)
+# Color by cos2 values: quality on the factor map
+fviz_pca_var(pizza_pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+)
+
+#Contributions of variables to PCs
+head(var$contrib, 4)
+library("corrplot")
+corrplot(var$contrib, is.corr=FALSE)   
+fviz_pca_var(pizza_pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+)
+# Contributions of variables to PC1
+fviz_contrib(pizza_pca, choice = "var", axes = 1, top = 10)
+# Contributions of variables to PC2
+fviz_contrib(pizza_pca, choice = "var", axes = 2, top = 10)
+fviz_contrib(pizza_pca, choice = "var", axes = 1:2, top = 10)
+
+
+#Graphs of individuals
+
+ind <- get_pca_ind(pizza_pca)
+ind
+
+# Coordinates of individuals
+head(ind$coord)
+# Quality of individuals
+head(ind$cos2)
+# Contributions of individuals
+head(ind$contrib)
+
+
+fviz_pca_ind(pizza_pca, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+
+
+fviz_pca_ind(pizza_pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = pizza$brand, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups"
+)
+ind.p <- fviz_pca_ind(pizza_pca, geom = "point", col.ind = pizza$brand)
+ggpubr::ggpar(ind.p,
+              title = "Principal Component Analysis",
+              subtitle = "Pizza dataset",
+              xlab = "PC1", ylab = "PC2",
+              legend.title = "Species", legend.position = "top",
+              ggtheme = theme_gray(), palette = "jco"
+)
+
+
+
+
+
+#######################Clustering Analysis############################
+
+
+library(cluster)
+library(readr)
+library(factoextra)
+library(magrittr)
+library(NbClust)
+
+
+#Hierarchical Clustering Analysis
+
+#Distance measure
+pizza_dist <- get_dist(pizza[,-1], stand = TRUE, method = "euclidean")
+pizza_dist
+
+pizza_sn <- hclust(pizza_dist, method = "single")
+plot(pizza_sn, hang=-1,xlab="Object",ylab="Distance",
+     main="Dendrogram. Nearest neighbor linkage")
+
+pizza_fn <- hclust(pizza_dist)
+plot(pizza_fn, hang=-1,xlab="Object",ylab="Distance",
+     main="Dendrogram. Farthest neighbor linkage")
+
+
+pizza_av <- hclust(pizza_dist)
+plot(pizza_av, hang=-1,xlab="Object",ylab="Distance",
+     main="Dendrogram. Group average linkage")
+
+
+plot(as.dendrogram(pizza_sn),ylab="Distance between each brand",ylim=c(0,2.5),main="Dendrogram of 3 brands")
+
+plot(as.dendrogram(pizza_sn),ylab="Distance between each brand",xlim =c(6,0),main="Dendrogram of 3 brands")
+
+
+#-----------------------------------------
+#K-Means Clustering
+
+
+matstd_pizza <- scale(pizza[,-1])
+matstd_pizza
+
+(kmeans2.employ <- kmeans(matstd_pizza,3,nstart = 10))
+(kmeans2.employ <- kmeans(matstd_pizza,4,nstart = 10))
+(kmeans2.employ <- kmeans(matstd_pizza,5,nstart = 10))
+(kmeans2.employ <- kmeans(matstd_pizza,6,nstart = 10))
+
+
+pizza.dist <- get_dist(pizza[,-1], stand = TRUE, method = "pearson")
+
+head(pizza.dist,n=3)#Pearson method
+head(pizza_dist,n=3)#Euclidean method
+
+
+fviz_dist(pizza.dist, 
+          gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+
+fviz_nbclust(matstd_pizza, kmeans, method = "gap_stat")
+
+set.seed(123)
+km.res <- kmeans(matstd_pizza, 3, nstart = 25)
+# Visualize
+fviz_cluster(km.res, data = matstd_pizza,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+
+pam.res <- pam(matstd_pizza, 3)
+# Visualize
+fviz_cluster(pam.res)  
+
+
+set.seed(123)
+
+# Determining the optimal numbers of Clusters
+library("NbClust")
+res.nbclust <- pizza[,-1] %>%
+  scale() %>%
+  NbClust(distance = "euclidean",
+          min.nc = 2, max.nc = 5, 
+          method = "complete", index ="all") 
+
+
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                                                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(123)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+# assign them to the factoextra namespace
+environment(fviz_nbclust) <- asNamespace("factoextra")
+assignInNamespace("fviz_nbclust",fviz_nbclust,"factoextra")
+environment(.viz_NbClust) <- asNamespace("factoextra")
+assignInNamespace(".viz_NbClust",.viz_NbClust,"factoextra")
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+
+library(factoextra)
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+
+class(res.nbclust)
+
+
+# Quality of Clustering
+
+set.seed(123)
+# Enhanced hierarchical clustering, cut in 3 groups
+res.hc <- pizza[, -1] %>% scale() %>%
+  eclust("hclust", k = 3, graph = FALSE)
+
+# Visualize with factoextra
+fviz_dend(res.hc, palette = "jco",
+          rect = TRUE, show_labels = FALSE)
+
+fviz_silhouette(res.hc)
+
+# Silhouette width of observations
+sil <- res.hc$silinfo$widths[, 1:3]
+
+# Objects with negative silhouette
+neg_sil_index <- which(sil[, 'sil_width'] < 0)
+sil[neg_sil_index, , drop = FALSE]
+
+
+employ <- read.csv("D:/Rutgers MITA/Spring 2023/MVA/Euroemp.csv",header=TRUE,row.names=1)
+attach(employ)
+(agn.employ <- agnes(employ, metric="euclidean", stand=TRUE, method = "single"))
+plot(agn.employ, which.plots=2)
+plot(agn.employ, which.plots=1)
+#When which.plots=1, the plot function generates a dendrogram with the observations (or data points) labeled at the bottom of the plot. This plot shows the hierarchical structure of the clustering, with the height of the branches indicating the distance between the clusters.
+#When which.plots=2, the plot function generates a plot of the agglomerative coefficients, which are the distances between clusters at each step of the clustering process. This plot shows how the distances between clusters change as more observations are merged into larger clusters.
+
+matstd.employ <- scale(employ[,2:10])
+
+(kmeans2.employ <- kmeans(matstd.employ,2,nstart = 10))
+perc.var.2 <- round(100*(1 - kmeans2.employ$betweenss/kmeans2.employ$totss),1)
+names(perc.var.2) <- "Perc. 2 clus"
+perc.var.2
+(kmeans3.employ <- kmeans(matstd.employ,3,nstart = 10))
+perc.var.3 <- round(100*(1 - kmeans3.employ$betweenss/kmeans3.employ$totss),1)
+names(perc.var.3) <- "Perc. 3 clus"
+perc.var.3
+(kmeans4.employ <- kmeans(matstd.employ,4,nstart = 10))
+perc.var.4 <- round(100*(1 - kmeans4.employ$betweenss/kmeans4.employ$totss),1)
+names(perc.var.4) <- "Perc. 4 clus"
+perc.var.4
+Variance_List <- c(perc.var.2,perc.var.3,perc.var.4)
+Variance_List
+plot(Variance_List)
+
+fviz_nbclust(matstd.employ, kmeans, method = "gap_stat")
+
+
+#######################Exploratory Factor Analysis#####################################
+
+# Factor Analysis
+
+library(psych)
+
+
+fit.pc <- principal(pizza[-1], nfactors=4, rotate="varimax")
+fit.pc
+round(fit.pc$values, 3)
+fit.pc$loadings
+# Loadings with more digits
+for (i in c(1,3,2,4)) { print(fit.pc$loadings[[1,i]])}
+# Communalities
+fit.pc$communality
+# Rotated factor scores, Notice the columns ordering: RC1, RC3, RC2 and RC4
+fit.pc$scores
+# Play with FA utilities
+
+fa.parallel(pizza[-1]) # See factor recommendation
+fa.plot(fit.pc) # See Correlations within Factors
+fa.diagram(fit.pc) # Visualize the relationship
+vss(pizza[-1]) # See Factor recommendations for a simple structure
+
+
+
+
+# Computing Correlation Matrix
+corrm.pizza<- cor(pizza[-1])
+corrm.pizza
+plot(corrm.pizza)
+pizza_pca <- prcomp(pizza[-1], scale=TRUE)
+summary(pizza_pca)
+plot(pizza_pca)
+# A table containing eigenvalues and %'s accounted, follows. Eigenvalues are the sdev^2
+(eigen_pizza <- round(pizza_pca$sdev^2,3))
+round(fit.pc$values, 3)
+names(eigen_pizza) <- paste("PC",1:7,sep="")
+eigen_pizza
+sumlambdas <- sum(eigen_pizza)
+sumlambdas
+propvar <- round(eigen_pizza/sumlambdas,2)
+propvar
+cumvar_pizza <- cumsum(propvar)
+cumvar_pizza
+matlambdas <- rbind(eigen_pizza,propvar,cumvar_pizza)
+matlambdas
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+rownames(matlambdas)
+eigvec.pizza <- pizza_pca$rotation
+print(pizza_pca)
+# Taking the first four PCs to generate linear combinations for all the variables with four factors
+pcafactors.pizza <- eigvec.pizza[,1:4]
+pcafactors.pizza
+# Multiplying each column of the eigenvector’s matrix by the square-root of the corresponding eigenvalue in order to get the factor loadings
+unrot.fact.pizza <- sweep(pcafactors.pizza,MARGIN=2,pizza_pca$sdev[1:4],`*`)
+unrot.fact.pizza
+# Computing communalities
+communalities.pizza <- rowSums(unrot.fact.pizza^2)
+communalities.pizza
+# Performing the varimax rotation. The default in the varimax function is norm=TRUE thus, Kaiser normalization is carried out
+rot.fact.pizza <- varimax(unrot.fact.pizza)
+#View(unrot.fact.pizza)
+rot.fact.pizza
+
+```
+
+
+
+
