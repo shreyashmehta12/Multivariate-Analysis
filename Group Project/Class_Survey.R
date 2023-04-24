@@ -1,0 +1,145 @@
+#Importing required libraries
+library(magrittr)
+library(factoextra)
+library(NbClust)
+library(ggplot2)
+library(tidyr)
+library(gridExtra)
+library(grid)
+library(factoextra)
+library(corrplot)
+library(ggcorrplot)
+library(psych)
+library(MASS)
+library(memisc)
+library(dplyr)
+library(caret)
+library(e1071)
+library(pROC)
+library(dplyr)
+library(caTools)
+
+#Loading the dataset
+class_data <- read.csv("D:/Rutgers MITA/Spring 2023/MVA/Group Project/Class_Survey.csv")
+head(class_data)
+
+str(class_data)
+
+#Removing categorical columns and numerical can only be used for analysis
+class_data_analysis <- class_data[,3:13]
+head(class_data_analysis)
+
+dim(class_data_analysis)
+#The dataset contains 175 observations and 11 variables
+
+#Data Preparation
+norm_data <- scale(class_data_analysis)
+head(norm_data)
+
+corr <- cor(norm_data, method = "pearson")
+ggcorrplot(corr)
+
+
+#EFA
+fa.parallel(class_data_analysis)
+fit.pc <- principal(class_data_analysis, nfactors=5, rotate="varimax")
+fit.pc
+fa.plot(fit.pc)
+fa.diagram(fit.pc)
+fit.pc$loadings
+fit.pc$scores
+
+
+#Factor 1 includes WeChat and Tiktok these two platforms share similar characteristics or are used for similar purposes. This could suggest that both WeChat and TikTok are social media platforms that are primarily used for communication and socialization purposes.
+#Factor 2 includes Snapchat, Linkedin, Instagram reflects a social networking factor, where these platforms are used primarily for building and maintaining social connections, sharing personal updates and experiences, and staying informed about others' lives.
+#Factor 4 includes BeReal usage time, which is a social media platform 
+#Factor 3 includes Twitter and Facebook,  represent the public and real-time nature of information sharing on these platforms, where users can share their thoughts and opinions with a wider audience.
+
+#PCA
+
+norm_data
+norm_data=na.omit(norm_data)
+pca_data <- prcomp(norm_data)
+summary(pca_data)
+
+fviz_eig(pca_data, choice = "variance", addlabels = TRUE, barfill = "steelblue", linecolor = "red")
+
+pca_data$rotation[,1:6]
+
+eigenvalues <- summary(pca_data)$importance[2,]
+eigenvalues
+
+#Correlation Circle
+fviz_pca_var(pca_data, col.var = "black")
+#correlation circle shows that Linked In hrs and Snapchat hrs are correlated. Tiktok
+#hrs and We Chat hrs almost fall on the same line have high correlation.
+
+#Quality of representation
+fviz_cos2(pca_data, choice = "var", axes = 1:6)
+fviz_pca_var(pca_data, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+)
+#From the plot above, it can be depicted that Tiktok hrs, WeChat hrs and SnapChat hrs have a
+#high cos2 which means they have a good representation on the Principle Component whereas
+#Telegram hrs, Twitter hrs, Message hrs, BeReal hrs, and Instagram hrs have a less cos2
+#indicating that these variables are not perfectly represented by the Principle Component.
+
+#Contributions of variables to PCs
+pca1<- fviz_contrib(pca_data, choice = "var", axes = 1, top = 6, title = "PCA1")
+pca2<- fviz_contrib(pca_data, choice = "var", axes = 2, top = 6, title = "PCA2")
+pca3<- fviz_contrib(pca_data, choice = "var", axes = 3, top = 6, title = "PCA3")
+pca4<- fviz_contrib(pca_data, choice = "var", axes = 4, top = 6, title = "PCA4")
+pca5<- fviz_contrib(pca_data, choice = "var", axes = 5, top = 6, title = "PCA5")
+pca6<- fviz_contrib(pca_data, choice = "var", axes = 6, top = 6, title = "PCA6")
+
+grid.arrange(pca1, pca2,pca3,pca4,pca5,pca6,  ncol=6)
+#As per the plot, We Chat hrs ,Tik Tok hrs and SnapChat hrs. contribute the most to PC1,
+#Snapchat hrs , Linkedin hrs, and Facebook hrs contribute the most to PC2 and similarly the
+#contribution for each variable to the other Principle Components can be found.
+
+#Individual representation
+ind <- get_pca_ind(pca_data)
+ind
+fviz_pca_ind(pca_data, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+
+
+
+#Kmeans Clustering
+
+class_survey_dist <- dist(norm_data, method = "euclidean")
+fviz_dist(class_survey_dist, show_labels = F)
+nb <- NbClust(norm_data, distance = "euclidean", min.nc = 2,
+              max.nc = 10, method = "kmeans")
+km_data <- kmeans(norm_data, centers = 5, nstart = 35)
+fviz_cluster(list(data=norm_data, clusters=km_data$cluster))
+
+
+
+####Logistic Regression##########
+
+class_data_df <- data.frame(class_data[,3:16])
+class_data_df<-class_data_df %>% select(-c(Total.Social.Media.Screen.Time..hrs., Number.of.times.opened..hourly.intervals.))
+set.seed(123)
+train_indices <- sample(1:nrow(class_data_df), nrow(class_data_df)*0.8)
+train_data <- class_data_df[train_indices, ]
+test_data <- class_data_df[-train_indices, ]
+
+train_data$Social.Media.Addiction <- ifelse(train_data$Social.Media.Addiction == "Addicted", 0, 1)
+test_data$Social.Media.Addiction <- ifelse(test_data$Social.Media.Addiction == "Addicted", 0, 1)
+
+# Fit logistic regression model
+model <- glm(Social.Media.Addiction ~ ., data = train_data, family = "binomial")
+
+# Print model summary
+summary(model)
+
+#making predictions on the test data
+test_data$predicted.Social.Media.Addiction <- round(predict(model, newdata = test_data, type = "response"))
+
+confusionMatrix(table(test_data$Social.Media.Addiction, test_data$predicted.Social.Media.Addiction))
+
+#Accuracy is 73% and AIC score is 163.22
